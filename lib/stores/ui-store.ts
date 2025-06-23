@@ -55,6 +55,7 @@ interface UINotification {
   title: string;
   message?: string;
   duration?: number;
+  isRead?: boolean;
   action?: {
     label: string;
     onClick: () => void;
