@@ -589,7 +589,8 @@ export default function AdvancedPageEditor() {
             .map((item: any) => item.text || '')
             .join(' ');
           return (
-            count + text.split(/\s+/).filter(word => word.length > 0).length
+            count +
+            text.split(/\s+/).filter((word: string) => word.length > 0).length
           );
         }
         return count;
