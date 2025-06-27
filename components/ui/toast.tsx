@@ -2,7 +2,7 @@
  * Toast 컴포넌트
  * Radix UI Toast 기반 알림 시스템
  */
-
+'use client';
 import * as React from 'react';
 import * as ToastPrimitives from '@radix-ui/react-toast';
 import { type VariantProps, cva } from 'class-variance-authority';

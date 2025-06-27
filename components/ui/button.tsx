@@ -92,8 +92,22 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     const Comp = asChild ? Slot : 'button';
     const isDisabled = disabled || loading;
 
+    // asChild가 true일 때는 children만 렌더링 (Slot은 단일 자식만 허용)
+    if (asChild) {
+      return (
+        <Slot
+          className={cn(buttonVariants({ variant, size, className }))}
+          ref={ref}
+          {...props}
+        >
+          {children}
+        </Slot>
+      );
+    }
+
+    // 일반 버튼일 때는 모든 기능 지원
     return (
-      <Comp
+      <button
         className={cn(buttonVariants({ variant, size, className }))}
         ref={ref}
         disabled={isDisabled}
@@ -109,7 +123,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         {!loading && rightIcon && (
           <span className='ml-2 flex-shrink-0'>{rightIcon}</span>
         )}
-      </Comp>
+      </button>
     );
   }
 );
