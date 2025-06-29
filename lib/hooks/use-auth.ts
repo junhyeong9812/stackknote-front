@@ -163,11 +163,11 @@ export function useSessionTimer() {
     const sessionDuration = SESSION_CONFIG.DEFAULT_DURATION;
     const warningTime = sessionDuration - SESSION_CONFIG.IDLE_TIMEOUT;
 
-    let warningTimer: NodeJS.Timeout;
-    let logoutTimer: NodeJS.Timeout;
+    // let warningTimer: NodeJS.Timeout;
+    // let logoutTimer: NodeJS.Timeout;
 
     // 경고 타이머
-    warningTimer = setTimeout(() => {
+     const warningTimer = setTimeout(() => {  // 170라인 ✅
       setShowWarning(true);
       setTimeLeft(SESSION_CONFIG.IDLE_TIMEOUT);
 
@@ -184,7 +184,7 @@ export function useSessionTimer() {
     }, warningTime);
 
     // 자동 로그아웃 타이머
-    logoutTimer = setTimeout(() => {
+    const logoutTimer = setTimeout(() => {  // 187라인 ✅
       logout();
     }, sessionDuration);
 

@@ -22,7 +22,6 @@ import { Card, StatCard, ImageCard } from '@/components/ui/card';
 import { UserAvatar, AvatarGroup } from '@/components/ui/avatar';
 import { Badge, StatusBadge, NewBadge } from '@/components/ui/badge';
 import { Progress, ProgressWithLabel } from '@/components/ui/progress';
-import { SimpleTooltip } from '@/components/ui/tooltip';
 import { SimpleTabs, type TabItem } from '@/components/ui/tabs';
 
 // 임시 데이터

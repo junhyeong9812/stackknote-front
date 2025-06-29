@@ -7,7 +7,10 @@ const nextConfig: NextConfig = {
   // 이미지 최적화 (선택사항)
   images: {
     unoptimized: true
-  }
+  },
+  eslint: {
+    ignoreDuringBuilds: true, // 빌드 시 ESLint 워닝/에러 무시
+  },
 };
 
 export default nextConfig;

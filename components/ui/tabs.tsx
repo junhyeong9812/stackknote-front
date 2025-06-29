@@ -301,6 +301,7 @@ const ScrollableTabs = React.forwardRef<
         return () =>
           scrollElement.removeEventListener('scroll', checkScrollButtons);
       }
+      return undefined;
     }, [checkScrollButtons]);
 
     const scrollLeft = () => {

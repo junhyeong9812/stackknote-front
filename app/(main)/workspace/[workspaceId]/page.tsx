@@ -37,7 +37,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { SimpleTooltip } from '@/components/ui/tooltip'
 import { 
   SimpleTabs,
   type TabItem 

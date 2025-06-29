@@ -31,6 +31,29 @@ const inputVariants = cva(
   }
 );
 
+// Textarea 전용 변형 스타일 정의
+const textareaVariants = cva(
+  'flex w-full border border-input bg-background text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50',
+  {
+    variants: {
+      variant: {
+        default: 'border-input',
+        error: 'border-destructive focus-visible:ring-destructive',
+        success: 'border-green-500 focus-visible:ring-green-500',
+      },
+      size: {
+        default: 'px-3 py-2 rounded-md',
+        sm: 'px-2 py-1 rounded-md text-xs',
+        lg: 'px-4 py-3 rounded-lg',
+      },
+    },
+    defaultVariants: {
+      variant: 'default',
+      size: 'default',
+    },
+  }
+);
+
 // 기본 Input Props
 export interface InputProps
   extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'size'>,
@@ -251,7 +274,7 @@ SearchInput.displayName = 'SearchInput';
 // Textarea 컴포넌트
 export interface TextareaProps
   extends Omit<React.TextareaHTMLAttributes<HTMLTextAreaElement>, 'size'>,
-    VariantProps<typeof inputVariants> {
+    VariantProps<typeof textareaVariants> {
   error?: string;
   helperText?: string;
   autoResize?: boolean;
@@ -279,7 +302,7 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
     React.useEffect(() => {
       if (autoResize && textareaRef.current) {
         const textarea = textareaRef.current;
-        const adjustHeight = () => {
+        const adjustHeight = (): void => {
           textarea.style.height = 'auto';
           textarea.style.height = `${textarea.scrollHeight}px`;
         };
@@ -289,6 +312,7 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
 
         return () => textarea.removeEventListener('input', adjustHeight);
       }
+      return undefined;
     }, [autoResize]);
 
     // ref 병합
@@ -298,7 +322,7 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
       <div className='relative w-full'>
         <textarea
           className={cn(
-            inputVariants({ variant: inputVariant, size }),
+            textareaVariants({ variant: inputVariant, size }),
             'min-h-[80px] resize-none',
             autoResize && 'resize-none overflow-hidden',
             className

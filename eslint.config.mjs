@@ -23,7 +23,7 @@ const eslintConfig = [
         },
       ],
       "@typescript-eslint/no-explicit-any": "warn",
-      "@typescript-eslint/prefer-const": "error",
+      // "@typescript-eslint/prefer-const": "error",
       "@typescript-eslint/no-var-requires": "off",
 
       // React 관련 규칙

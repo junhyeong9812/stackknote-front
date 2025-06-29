@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { Toaster } from '@/components/ui/toast';
+import { TooltipProvider } from '@/components/ui/tooltip'
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -82,10 +83,12 @@ export default function RootLayout({
       <body
         className={`${inter.className} bg-background min-h-screen font-sans antialiased`}
       >
-        <div className='relative flex min-h-screen flex-col'>
-          <div className='flex-1'>{children}</div>
-        </div>
-        <Toaster />
+        <TooltipProvider>
+          <div className='relative flex min-h-screen flex-col'>
+            <div className='flex-1'>{children}</div>
+          </div>
+          <Toaster />
+        </TooltipProvider>
       </body>
     </html>
   );

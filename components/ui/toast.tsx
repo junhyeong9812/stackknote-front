@@ -361,28 +361,27 @@ const EnhancedToast = React.forwardRef<
 EnhancedToast.displayName = 'EnhancedToast';
 
 // 편의 함수들
-const toast = {
-  success: (options: Omit<ToastOptions, 'variant'>) => {
-    const { toast: toastFn } = useToast();
-    return toastFn({ ...options, variant: 'success' });
-  },
-  error: (options: Omit<ToastOptions, 'variant'>) => {
-    const { toast: toastFn } = useToast();
-    return toastFn({ ...options, variant: 'destructive' });
-  },
-  warning: (options: Omit<ToastOptions, 'variant'>) => {
-    const { toast: toastFn } = useToast();
-    return toastFn({ ...options, variant: 'warning' });
-  },
-  info: (options: Omit<ToastOptions, 'variant'>) => {
-    const { toast: toastFn } = useToast();
-    return toastFn({ ...options, variant: 'info' });
-  },
-  default: (options: ToastOptions) => {
-    const { toast: toastFn } = useToast();
-    return toastFn(options);
-  },
-};
+function useToastHelpers() {
+  const { toast: toastFn } = useToast();
+
+  return {
+    success: (options: Omit<ToastOptions, 'variant'>) => {
+      return toastFn({ ...options, variant: 'success' });
+    },
+    error: (options: Omit<ToastOptions, 'variant'>) => {
+      return toastFn({ ...options, variant: 'destructive' });
+    },
+    warning: (options: Omit<ToastOptions, 'variant'>) => {
+      return toastFn({ ...options, variant: 'warning' });
+    },
+    info: (options: Omit<ToastOptions, 'variant'>) => {
+      return toastFn({ ...options, variant: 'info' });
+    },
+    default: (options: ToastOptions) => {
+      return toastFn(options);
+    },
+  };
+}
 
 // Toaster 컴포넌트 (실제 토스트들을 렌더링)
 function Toaster() {
@@ -414,7 +413,7 @@ export {
   type ToastData,
   type ToastActionElement,
   useToast,
-  toast,
+  useToastHelpers,
   Toaster,
   Toast,
   ToastAction,

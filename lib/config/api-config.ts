@@ -4,6 +4,25 @@
 
 import { env } from '../api/env';
 
+// 동적 API URL 결정 함수
+function getApiBaseUrl(): string {
+  if (typeof window === 'undefined') {
+    // 서버 사이드에서는 기본값 사용
+    return env.API_URL;
+  }
+
+  const hostname = window.location.hostname;
+  
+  switch (hostname) {
+    case 'www.pinjun.xyz':
+      return process.env.NEXT_PUBLIC_PROD_API_URL || env.API_URL;
+    case '192.168.55.164':
+      return process.env.NEXT_PUBLIC_LOCAL_API_URL || env.API_URL;
+    default:
+      return env.API_URL;
+  }
+}
+
 // API 기본 설정
 export const API_CONFIG = {
   BASE_URL: env.API_URL,
@@ -218,11 +237,36 @@ export const API_ENDPOINTS = {
 } as const;
 
 // URL 헬퍼 함수
+// export function buildUrl(
+//   endpoint: string,
+//   params?: Record<string, any>
+// ): string {
+//   let url = `${API_CONFIG.BASE_URL}${endpoint}`;
+
+//   if (params) {
+//     const searchParams = new URLSearchParams();
+//     Object.entries(params).forEach(([key, value]) => {
+//       if (value !== undefined && value !== null) {
+//         searchParams.append(key, String(value));
+//       }
+//     });
+
+//     const queryString = searchParams.toString();
+//     if (queryString) {
+//       url += `?${queryString}`;
+//     }
+//   }
+
+//   return url;
+// }
+// URL 헬퍼 함수 (도메인별 분기 처리)
 export function buildUrl(
   endpoint: string,
   params?: Record<string, any>
 ): string {
-  let url = `${API_CONFIG.BASE_URL}${endpoint}`;
+  // 동적으로 BASE_URL 결정
+  const baseUrl = getApiBaseUrl();
+  let url = `${baseUrl}${endpoint}`;
 
   if (params) {
     const searchParams = new URLSearchParams();

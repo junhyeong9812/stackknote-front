@@ -96,7 +96,8 @@ const SwitchWithLabel = React.forwardRef<
     },
     ref
   ) => {
-    const switchId = id || React.useId();
+    const generatedId = React.useId();
+    const switchId = id || generatedId;
 
     const switchElement = <Switch ref={ref} id={switchId} {...props} />;
 
