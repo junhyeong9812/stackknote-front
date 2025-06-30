@@ -32,8 +32,8 @@ interface AuthStore extends AuthState {
 export const useAuthStore = create<AuthStore>()(
   persist(
     (set, get) => ({
-      // Initial state
-      status: 'loading',
+      // Initial state - 수정: 초기 상태를 unauthenticated로 변경
+      status: 'unauthenticated',
       user: null,
       accessToken: null,
       refreshToken: null,
@@ -95,6 +95,7 @@ export const useAuthStore = create<AuthStore>()(
 
       logout: async () => {
         try {
+          set({ isLoading: true });
           await authApi.logout();
         } catch (error) {
           console.error('Logout API error:', error);
@@ -114,6 +115,7 @@ export const useAuthStore = create<AuthStore>()(
 
       logoutFromAllDevices: async () => {
         try {
+          set({ isLoading: true });
           await authApi.logoutFromAllDevices();
         } catch (error) {
           console.error('Logout all devices API error:', error);
@@ -132,7 +134,7 @@ export const useAuthStore = create<AuthStore>()(
 
       checkAuthStatus: async () => {
         try {
-          set({ status: 'loading' });
+          set({ status: 'loading', isLoading: true });
 
           const response = await authApi.checkAuthStatus();
 
@@ -199,14 +201,15 @@ export const useAuthStore = create<AuthStore>()(
   )
 );
 
-// Computed values (selectors)
+// Computed values (selectors) - 수정: isLoading 로직 개선
 export const useAuth = () => {
   const store = useAuthStore();
 
   return {
     ...store,
     isAuthenticated: store.status === 'authenticated',
-    isLoading: store.status === 'loading' || store.isLoading,
+    // 수정: 명시적인 isLoading 상태만 사용
+    isLoading: store.isLoading,
     isGuest: false, // 추후 게스트 모드 구현시 사용
   };
 };
