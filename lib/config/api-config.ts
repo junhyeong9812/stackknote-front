@@ -2,26 +2,7 @@
  * API 설정 및 엔드포인트 정의
  */
 
-import { env } from '../api/env';
-
-// 동적 API URL 결정 함수
-function getApiBaseUrl(): string {
-  if (typeof window === 'undefined') {
-    // 서버 사이드에서는 기본값 사용
-    return env.API_URL;
-  }
-
-  const hostname = window.location.hostname;
-  
-  switch (hostname) {
-    case 'www.pinjun.xyz':
-      return process.env.NEXT_PUBLIC_PROD_API_URL || env.API_URL;
-    case '192.168.55.164':
-      return process.env.NEXT_PUBLIC_LOCAL_API_URL || env.API_URL;
-    default:
-      return env.API_URL;
-  }
-}
+import { env, getApiUrl } from './env';
 
 // API 기본 설정
 export const API_CONFIG = {
@@ -236,37 +217,16 @@ export const API_ENDPOINTS = {
   },
 } as const;
 
-// URL 헬퍼 함수
-// export function buildUrl(
-//   endpoint: string,
-//   params?: Record<string, any>
-// ): string {
-//   let url = `${API_CONFIG.BASE_URL}${endpoint}`;
-
-//   if (params) {
-//     const searchParams = new URLSearchParams();
-//     Object.entries(params).forEach(([key, value]) => {
-//       if (value !== undefined && value !== null) {
-//         searchParams.append(key, String(value));
-//       }
-//     });
-
-//     const queryString = searchParams.toString();
-//     if (queryString) {
-//       url += `?${queryString}`;
-//     }
-//   }
-
-//   return url;
-// }
-// URL 헬퍼 함수 (도메인별 분기 처리)
+/**
+ * URL 헬퍼 함수 (도메인별 분기 처리)
+ * config/env.ts의 getApiUrl 함수를 사용하여 동적으로 BASE_URL 결정
+ */
 export function buildUrl(
   endpoint: string,
   params?: Record<string, any>
 ): string {
-  // 동적으로 BASE_URL 결정
-  const baseUrl = getApiBaseUrl();
-  let url = `${baseUrl}${endpoint}`;
+  // config/env.ts의 getApiUrl 함수 사용
+  let url = getApiUrl(endpoint);
 
   if (params) {
     const searchParams = new URLSearchParams();
@@ -285,7 +245,45 @@ export function buildUrl(
   return url;
 }
 
-// API 엔드포인트 타입 검증
+/**
+ * API 엔드포인트 타입 검증
+ */
 export function isValidEndpoint(endpoint: string): boolean {
   return endpoint.startsWith('/') && endpoint.length > 1;
+}
+
+/**
+ * API 응답 타입 체크를 위한 유틸리티
+ */
+export function isApiError(response: any): response is { error: string; message?: string } {
+  return response && typeof response.error === 'string';
+}
+
+/**
+ * API 요청 헤더 생성
+ */
+export function createHeaders(token?: string): HeadersInit {
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+  };
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  return headers;
+}
+
+/**
+ * 파일 업로드용 헤더 생성
+ */
+export function createFileUploadHeaders(token?: string): HeadersInit {
+  const headers: HeadersInit = {};
+
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+
+  // Content-Type은 브라우저가 자동으로 설정하도록 함 (multipart/form-data 경계 포함)
+  return headers;
 }
