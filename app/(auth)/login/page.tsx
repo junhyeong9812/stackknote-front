@@ -85,21 +85,21 @@ function LoginPageContent() {
       <div className='space-y-4 text-center'>
         <div className='text-muted-foreground text-sm'>
           아직 계정이 없으신가요?{' '}
-          <a
+          <Link
             href='/register'
             className='text-primary hover:text-primary/80 font-medium transition-colors'
           >
             회원가입
-          </a>
+          </Link>
         </div>
 
         <div className='text-sm'>
-          <a
+          <Link
             href='/forgot-password'
             className='text-muted-foreground hover:text-primary transition-colors'
           >
             비밀번호를 잊으셨나요?
-          </a>
+          </Link>
         </div>
       </div>
     </div>
