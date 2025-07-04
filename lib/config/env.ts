@@ -5,13 +5,8 @@
 
 // 환경 변수 타입 정의
 interface EnvConfig {
-  // API 설정
-  API_URL: string;
+  // API 설정 (기본값만)
   API_TIMEOUT: number;
-  
-  // 도메인별 API URL
-  PROD_API_URL?: string;
-  LOCAL_API_URL?: string;
 
   // 앱 설정
   APP_NAME: string;
@@ -28,9 +23,6 @@ interface EnvConfig {
   EDITOR_HISTORY_LIMIT: number;
 
   // 실시간 협업
-  WEBSOCKET_URL?: string;
-  PROD_WS_URL?: string;
-  LOCAL_WS_URL?: string;
   ENABLE_REALTIME: boolean;
 
   // 게스트 모드
@@ -51,20 +43,8 @@ interface EnvConfig {
  * 환경 변수 파싱 및 기본값 설정
  */
 function parseEnvConfig(): EnvConfig {
-  // API URL 우선순위 처리 (유연한 검증)
-  const apiUrl = process.env.NEXT_PUBLIC_API_URL || 
-                 process.env.NEXT_PUBLIC_PROD_API_URL || 
-                 process.env.NEXT_PUBLIC_LOCAL_API_URL;
-  
-  if (!apiUrl) {
-    throw new Error('Missing required API URL environment variable (NEXT_PUBLIC_API_URL, NEXT_PUBLIC_PROD_API_URL, or NEXT_PUBLIC_LOCAL_API_URL)');
-  }
-
   return {
     // API 설정
-    API_URL: apiUrl,
-    PROD_API_URL: process.env.NEXT_PUBLIC_PROD_API_URL,
-    LOCAL_API_URL: process.env.NEXT_PUBLIC_LOCAL_API_URL,
     API_TIMEOUT: parseInt(process.env.NEXT_PUBLIC_API_TIMEOUT || '30000', 10),
 
     // 앱 설정
@@ -72,7 +52,7 @@ function parseEnvConfig(): EnvConfig {
     APP_VERSION: process.env.NEXT_PUBLIC_APP_VERSION || '0.1.0',
     APP_ENV:
       (process.env.NEXT_PUBLIC_APP_ENV as EnvConfig['APP_ENV']) ||
-      'development',
+      'production',
 
     // 파일 업로드 설정
     MAX_FILE_SIZE: parseInt(process.env.NEXT_PUBLIC_MAX_FILE_SIZE || '10', 10),
@@ -96,9 +76,6 @@ function parseEnvConfig(): EnvConfig {
     ),
 
     // 실시간 협업
-    WEBSOCKET_URL: process.env.NEXT_PUBLIC_WEBSOCKET_URL,
-    PROD_WS_URL: process.env.NEXT_PUBLIC_PROD_WS_URL,
-    LOCAL_WS_URL: process.env.NEXT_PUBLIC_LOCAL_WS_URL,
     ENABLE_REALTIME: process.env.NEXT_PUBLIC_ENABLE_REALTIME === 'true',
 
     // 게스트 모드
@@ -173,64 +150,80 @@ export function isValidFileSize(file: File): boolean {
 }
 
 /**
- * 도메인별 API URL 동적 결정
+ * 진짜 동적 API URL 생성
+ * 현재 도메인을 기반으로 API URL을 자동으로 생성
  */
 export function getApiUrl(path: string = ''): string {
   let baseUrl: string;
   
   if (typeof window === 'undefined') {
-    // 서버 사이드에서는 기본값 사용
-    baseUrl = env.API_URL;
+    // 서버 사이드에서는 기본값 사용 (빌드시에는 알 수 없음)
+    baseUrl = 'https://www.pinjun.xyz/stacknote/api';
   } else {
-    // 클라이언트 사이드에서는 도메인별 분기
-    const hostname = window.location.hostname;
+    // 클라이언트 사이드에서 현재 도메인 기반으로 동적 생성
+    const { protocol, hostname, port } = window.location;
     
-    switch (hostname) {
-      case 'www.pinjun.xyz':
-        baseUrl = env.PROD_API_URL || env.API_URL;
-        break;
-      case '192.168.55.164':
-        baseUrl = env.LOCAL_API_URL || env.API_URL;
-        break;
-      default:
-        baseUrl = env.API_URL;
+    console.log('Current location:', { protocol, hostname, port }); // 디버깅용
+    
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      // 로컬 개발환경
+      const devPort = port === '3000' || port === '3001' ? '8080' : port;
+      baseUrl = `${protocol}//${hostname}:${devPort}/api`;
+    } else if (hostname === '192.168.55.164') {
+      // 로컬 IP 환경 (nginx 프록시 사용)
+      baseUrl = `${protocol}//${hostname}/stacknote/api`;
+    } else if (hostname === 'www.pinjun.xyz' || hostname === 'pinjun.xyz') {
+      // 프로덕션 환경 (nginx 프록시 사용)
+      baseUrl = `${protocol}//${hostname}/stacknote/api`;
+    } else {
+      // 알 수 없는 도메인 - 기본값 사용
+      baseUrl = `${protocol}//${hostname}/stacknote/api`;
     }
+    
+    console.log('Generated API URL:', baseUrl); // 디버깅용
   }
   
   const cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
   const cleanPath = path.startsWith('/') ? path : `/${path}`;
   
-  return `${cleanBaseUrl}${cleanPath}`;
+  const fullUrl = `${cleanBaseUrl}${cleanPath}`;
+  console.log('Final API URL:', fullUrl); // 디버깅용
+  
+  return fullUrl;
 }
 
 /**
- * 도메인별 WebSocket URL 동적 결정
+ * 진짜 동적 WebSocket URL 생성
+ * 현재 도메인을 기반으로 WebSocket URL을 자동으로 생성
  */
 export function getWebSocketUrl(path: string = ''): string | null {
   if (!env.ENABLE_REALTIME) return null;
   
-  let baseUrl: string | undefined;
+  let baseUrl: string;
   
   if (typeof window === 'undefined') {
     // 서버 사이드에서는 기본값 사용
-    baseUrl = env.WEBSOCKET_URL;
+    baseUrl = 'wss://www.pinjun.xyz/stacknote/ws';
   } else {
-    // 클라이언트 사이드에서는 도메인별 분기
-    const hostname = window.location.hostname;
+    // 클라이언트 사이드에서 현재 도메인 기반으로 동적 생성
+    const { protocol, hostname, port } = window.location;
+    const wsProtocol = protocol === 'https:' ? 'wss:' : 'ws:';
     
-    switch (hostname) {
-      case 'www.pinjun.xyz':
-        baseUrl = env.PROD_WS_URL || env.WEBSOCKET_URL;
-        break;
-      case '192.168.55.164':
-        baseUrl = env.LOCAL_WS_URL || env.WEBSOCKET_URL;
-        break;
-      default:
-        baseUrl = env.WEBSOCKET_URL;
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      // 로컬 개발환경
+      const devPort = port === '3000' || port === '3001' ? '8080' : port;
+      baseUrl = `${wsProtocol}//${hostname}:${devPort}/ws`;
+    } else if (hostname === '192.168.55.164') {
+      // 로컬 IP 환경 (nginx 프록시 사용)
+      baseUrl = `${wsProtocol}//${hostname}/stacknote/ws`;
+    } else if (hostname === 'www.pinjun.xyz' || hostname === 'pinjun.xyz') {
+      // 프로덕션 환경 (nginx 프록시 사용)
+      baseUrl = `${wsProtocol}//${hostname}/stacknote/ws`;
+    } else {
+      // 알 수 없는 도메인 - 기본값 사용
+      baseUrl = `${wsProtocol}//${hostname}/stacknote/ws`;
     }
   }
-  
-  if (!baseUrl) return null;
   
   const cleanBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
   const cleanPath = path.startsWith('/') ? path : `/${path}`;

@@ -4,9 +4,11 @@
 
 import { env, getApiUrl } from './env';
 
-// API 기본 설정
+// API 기본 설정 - 동적 URL 사용
 export const API_CONFIG = {
-  BASE_URL: env.API_URL,
+  get BASE_URL() {
+    return getApiUrl(); // 동적으로 생성된 API URL 사용
+  },
   TIMEOUT: env.API_TIMEOUT,
   RETRY_ATTEMPTS: 3,
   RETRY_DELAY: 1000,
