@@ -146,3 +146,19 @@ export type {
   IconTooltipProps,
   KeyboardTooltipProps,
 } from './tooltip';
+
+export {
+  Switch,
+  SwitchWithLabel,
+  AnimatedSwitch,
+  SettingSwitch,
+  SwitchGroup,
+} from './switch';
+
+// Switch 타입들
+export type {
+  SwitchWithLabelProps,
+  AnimatedSwitchProps,
+  SettingSwitchProps,
+  SwitchGroupProps,
+} from './switch';
