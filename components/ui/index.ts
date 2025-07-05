@@ -96,6 +96,27 @@ export {
   KeyboardTooltip,
 } from './tooltip';
 
+// Switch 컴포넌트들
+export {
+  Switch,
+  SwitchWithLabel,
+  AnimatedSwitch,
+  SettingSwitch,
+  SwitchGroup,
+} from './switch';
+
+// Tabs 컴포넌트들
+export {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+  SimpleTabs,
+  VerticalTabs,
+  ScrollableTabs,
+  CardTabs,
+} from './tabs';
+
 // 타입들도 함께 export
 export type { ButtonProps } from './button';
 
@@ -147,18 +168,18 @@ export type {
   KeyboardTooltipProps,
 } from './tooltip';
 
-export {
-  Switch,
-  SwitchWithLabel,
-  AnimatedSwitch,
-  SettingSwitch,
-  SwitchGroup,
-} from './switch';
-
-// Switch 타입들
 export type {
   SwitchWithLabelProps,
   AnimatedSwitchProps,
   SettingSwitchProps,
   SwitchGroupProps,
 } from './switch';
+
+// Tabs 타입들
+export type {
+  TabItem,
+  SimpleTabsProps,
+  VerticalTabsProps,
+  ScrollableTabsProps,
+  CardTabsProps,
+} from './tabs';
