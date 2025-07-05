@@ -31,3 +31,6 @@ export * from './tag';
 
 // 알림 관련 타입
 export * from './notification';
+
+// 테이블 관련 타입
+export * from './table';
