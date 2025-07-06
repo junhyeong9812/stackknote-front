@@ -70,9 +70,9 @@ export const useSidebarStore = create<SidebarStore>()(
       error: null,
 
       // UI state
-      expandedSections: new Set(['PERSONAL', 'TEAMSPACES']),
-      expandedWorkspaces: new Set(),
-      expandedPages: new Set(),
+      expandedSections: ['PERSONAL', 'TEAMSPACES', 'PAGES'] as SidebarSection[],
+      expandedWorkspaces: [] as number[],
+      expandedPages: [] as number[],
       selectedPageId: null,
       selectedWorkspaceId: null,
       isDragging: false,
@@ -213,43 +213,37 @@ export const useSidebarStore = create<SidebarStore>()(
       // UI actions
       toggleSection: (section: SidebarSection) => {
         const { expandedSections } = get();
-        const newSections = new Set(expandedSections);
+        const isExpanded = expandedSections.includes(section);
         
-        if (newSections.has(section)) {
-          newSections.delete(section);
+        if (isExpanded) {
+          set({ expandedSections: expandedSections.filter(s => s !== section) });
         } else {
-          newSections.add(section);
+          set({ expandedSections: [...expandedSections, section] });
         }
-        
-        set({ expandedSections: newSections });
       },
 
       toggleWorkspace: (workspaceId: number) => {
         const { expandedWorkspaces } = get();
-        const newWorkspaces = new Set(expandedWorkspaces);
+        const isExpanded = expandedWorkspaces.includes(workspaceId);
         
-        if (newWorkspaces.has(workspaceId)) {
-          newWorkspaces.delete(workspaceId);
+        if (isExpanded) {
+          set({ expandedWorkspaces: expandedWorkspaces.filter(id => id !== workspaceId) });
         } else {
-          newWorkspaces.add(workspaceId);
+          set({ expandedWorkspaces: [...expandedWorkspaces, workspaceId] });
           // 워크스페이스 확장 시 페이지 목록 로드
           get().fetchWorkspacePages(workspaceId);
         }
-        
-        set({ expandedWorkspaces: newWorkspaces });
       },
 
       togglePage: (pageId: number) => {
         const { expandedPages } = get();
-        const newPages = new Set(expandedPages);
+        const isExpanded = expandedPages.includes(pageId);
         
-        if (newPages.has(pageId)) {
-          newPages.delete(pageId);
+        if (isExpanded) {
+          set({ expandedPages: expandedPages.filter(id => id !== pageId) });
         } else {
-          newPages.add(pageId);
+          set({ expandedPages: [...expandedPages, pageId] });
         }
-        
-        set({ expandedPages: newPages });
       },
 
       selectPage: (pageId: number | null) => {
@@ -279,13 +273,13 @@ export const useSidebarStore = create<SidebarStore>()(
         const { sidebarData, expandedPages } = get();
         if (!sidebarData) return;
 
-        const newExpandedPages = new Set(expandedPages);
+        const pageIds: number[] = [];
         
         // 해당 워크스페이스의 모든 페이지 ID 수집
         const collectPageIds = (pages: PageTreeResponse[]) => {
           pages.forEach(page => {
             if (page.hasChildren) {
-              newExpandedPages.add(page.id);
+              pageIds.push(page.id);
               collectPageIds(page.children);
             }
           });
@@ -302,37 +296,40 @@ export const useSidebarStore = create<SidebarStore>()(
           }
         }
 
-        set({ expandedPages: newExpandedPages });
+        // 기존 expandedPages와 새로운 pageIds를 합치고 중복 제거
+        set({ expandedPages: Array.from(new Set([...expandedPages, ...pageIds])) });
       },
 
       collapseAllPages: (workspaceId: number) => {
         const { sidebarData, expandedPages } = get();
         if (!sidebarData) return;
 
-        const newExpandedPages = new Set(expandedPages);
+        const pageIdsToRemove: number[] = [];
         
-        // 해당 워크스페이스의 모든 페이지 ID 제거
-        const removePageIds = (pages: PageTreeResponse[]) => {
+        // 해당 워크스페이스의 모든 페이지 ID 수집
+        const collectPageIds = (pages: PageTreeResponse[]) => {
           pages.forEach(page => {
-            newExpandedPages.delete(page.id);
+            pageIdsToRemove.push(page.id);
             if (page.children) {
-              removePageIds(page.children);
+              collectPageIds(page.children);
             }
           });
         };
 
         if (sidebarData.personalSpace?.workspaceId === workspaceId) {
-          removePageIds(sidebarData.personalSpace.pages);
+          collectPageIds(sidebarData.personalSpace.pages);
         } else {
           const teamSpace = sidebarData.teamSpaces.find(
             space => space.workspaceId === workspaceId
           );
           if (teamSpace) {
-            removePageIds(teamSpace.pages);
+            collectPageIds(teamSpace.pages);
           }
         }
 
-        set({ expandedPages: newExpandedPages });
+        set({ 
+          expandedPages: expandedPages.filter(id => !pageIdsToRemove.includes(id))
+        });
       },
 
       // Error handling

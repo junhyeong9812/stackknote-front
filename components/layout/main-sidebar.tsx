@@ -87,28 +87,46 @@ export function MainSidebar({ className }: MainSidebarProps) {
     fetchSidebarData();
   }, [fetchSidebarData]);
 
-  // 섹션 렌더링
+  // 섹션 렌더링 (+ 버튼 포함)
   const renderSection = (
     title: string,
     section: SidebarSection,
     children: React.ReactNode,
-    isEmpty?: boolean
+    isEmpty?: boolean,
+    onAddClick?: () => void
   ) => {
-    const isExpanded = expandedSections.has(section);
+    const isExpanded = expandedSections.includes(section);
 
     return (
       <div className="mb-1">
-        <button
-          onClick={() => toggleSection(section)}
-          className="flex w-full items-center gap-1 rounded px-2 py-1 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
-        >
-          {isExpanded ? (
-            <ChevronDown className="h-3.5 w-3.5" />
-          ) : (
-            <ChevronRight className="h-3.5 w-3.5" />
+        <div className="group flex items-center justify-between rounded px-2 py-1 hover:bg-gray-100 dark:hover:bg-gray-800">
+          <button
+            onClick={() => toggleSection(section)}
+            className="flex flex-1 items-center gap-1 text-sm text-gray-600 dark:text-gray-400"
+          >
+            {isExpanded ? (
+              <ChevronDown className="h-3.5 w-3.5" />
+            ) : (
+              <ChevronRight className="h-3.5 w-3.5" />
+            )}
+            <span className="font-medium">{title}</span>
+          </button>
+          {onAddClick && (
+            <SimpleTooltip content={`새 ${title.slice(0, -1)}`}>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-5 w-5 p-0 opacity-0 group-hover:opacity-100"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onAddClick();
+                }}
+              >
+                <Plus className="h-3 w-3" />
+              </Button>
+            </SimpleTooltip>
           )}
-          <span className="font-medium">{title}</span>
-        </button>
+        </div>
         {isExpanded && (
           <div className="mt-0.5">
             {isEmpty ? (
@@ -131,7 +149,7 @@ export function MainSidebar({ className }: MainSidebarProps) {
     workspaceId: number
   ) => {
     const isActive = pathname === `/workspace/${workspaceId}/page/${page.id}`;
-    const isExpanded = expandedPages.has(page.id);
+    const isExpanded = expandedPages.includes(page.id);
     const hasChildren = page.hasChildren && page.children.length > 0;
 
     return (
@@ -221,93 +239,34 @@ export function MainSidebar({ className }: MainSidebarProps) {
     );
   };
 
-  // 워크스페이스 렌더링
+  // 워크스페이스 렌더링 (페이지 없이)
   const renderWorkspace = (
     workspace: PersonalSpaceResponse | TeamSpaceResponse,
     isPersonal = false
   ) => {
-    const isExpanded = expandedWorkspaces.has(workspace.workspaceId);
-
     return (
-      <div key={workspace.workspaceId} className="mb-1">
-        <div className="group flex items-center rounded px-2 hover:bg-gray-100 dark:hover:bg-gray-800">
-          <button
-            onClick={() => toggleWorkspace(workspace.workspaceId)}
-            className="flex h-6 w-6 items-center justify-center"
-          >
-            {isExpanded ? (
-              <ChevronDown className="h-3.5 w-3.5 text-gray-500" />
-            ) : (
-              <ChevronRight className="h-3.5 w-3.5 text-gray-500" />
-            )}
-          </button>
-
-          <Link
-            href={`/workspace/${workspace.workspaceId}`}
-            className="flex flex-1 items-center gap-2 py-1"
-          >
-            {workspace.icon ? (
-              <span className="text-sm">{workspace.icon}</span>
-            ) : (
-              <Hash className="h-3.5 w-3.5 text-gray-500" />
-            )}
-            <span className="flex-1 truncate text-sm font-medium text-gray-700 dark:text-gray-300">
-              {workspace.name}
-            </span>
-            <span className="text-xs text-gray-500">
-              {workspace.totalPageCount}
-            </span>
-          </Link>
-
-          <div className="opacity-0 group-hover:opacity-100">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-                  <MoreHorizontal className="h-3.5 w-3.5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem>
-                  <Plus className="mr-2 h-3.5 w-3.5" />
-                  새 페이지
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Settings className="mr-2 h-3.5 w-3.5" />
-                  설정
-                </DropdownMenuItem>
-                {!isPersonal && (
-                  <>
-                    <DropdownMenuItem>
-                      <Users className="mr-2 h-3.5 w-3.5" />
-                      멤버 관리
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem>
-                      <LogOut className="mr-2 h-3.5 w-3.5" />
-                      나가기
-                    </DropdownMenuItem>
-                  </>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
-
-        {isExpanded && (
-          <div className="ml-2">
-            {workspace.pages.map(page => 
-              renderPageTree(page, 0, workspace.workspaceId)
-            )}
-            {workspace.pages.length === 0 && (
-              <div className="px-6 py-2 text-xs text-gray-500">
-                페이지가 없습니다
-              </div>
-            )}
-          </div>
+      <Link
+        key={workspace.workspaceId}
+        href={`/workspace/${workspace.workspaceId}`}
+        className="group flex items-center gap-2 rounded px-3 py-1 hover:bg-gray-100 dark:hover:bg-gray-800"
+      >
+        {workspace.icon ? (
+          <span className="text-sm">{workspace.icon}</span>
+        ) : (
+          <Hash className="h-3.5 w-3.5 text-gray-500" />
         )}
-      </div>
+        <span className="flex-1 truncate text-sm text-gray-700 dark:text-gray-300">
+          {workspace.name}
+        </span>
+        <span className="text-xs text-gray-500">
+          {workspace.totalPageCount}
+        </span>
+      </Link>
     );
   };
+
+  // 페이지 섹션용 워크스페이스 선택기
+  const [selectedWorkspaceForPages, setSelectedWorkspaceForPages] = useState<number | null>(null);
 
   // 최근/즐겨찾기 페이지 렌더링
   const renderQuickAccessPage = (
@@ -449,12 +408,6 @@ export function MainSidebar({ className }: MainSidebarProps) {
               <SidebarClose className="h-3.5 w-3.5" />
             </Button>
           </SimpleTooltip>
-
-          <SimpleTooltip content="새 페이지 (Ctrl+N)">
-            <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
-              <Plus className="h-3.5 w-3.5" />
-            </Button>
-          </SimpleTooltip>
         </div>
 
         {/* 검색 버튼 */}
@@ -515,7 +468,69 @@ export function MainSidebar({ className }: MainSidebarProps) {
             '팀스페이스',
             'TEAMSPACES',
             sidebarData?.teamSpaces.map(space => renderWorkspace(space)),
-            !sidebarData?.teamSpaces.length
+            !sidebarData?.teamSpaces.length,
+            () => {
+              // TODO: 새 팀스페이스 생성
+              console.log('새 팀스페이스 생성');
+            }
+          )}
+
+          {/* 페이지 */}
+          {renderSection(
+            '페이지',
+            'PAGES',
+            <>
+              {/* 워크스페이스 선택 드롭다운 */}
+              <div className="mb-2 px-3">
+                <select
+                  value={selectedWorkspaceForPages || ''}
+                  onChange={(e) => setSelectedWorkspaceForPages(Number(e.target.value))}
+                  className="w-full rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm dark:border-gray-600 dark:bg-gray-800"
+                >
+                  <option value="">워크스페이스 선택</option>
+                  {sidebarData?.personalSpace && (
+                    <option value={sidebarData.personalSpace.workspaceId}>
+                      {sidebarData.personalSpace.name}
+                    </option>
+                  )}
+                  {sidebarData?.teamSpaces.map(space => (
+                    <option key={space.workspaceId} value={space.workspaceId}>
+                      {space.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              
+              {/* 선택된 워크스페이스의 페이지 트리 */}
+              {selectedWorkspaceForPages && (
+                <div>
+                  {(() => {
+                    const workspace = sidebarData?.personalSpace?.workspaceId === selectedWorkspaceForPages
+                      ? sidebarData.personalSpace
+                      : sidebarData?.teamSpaces.find(s => s.workspaceId === selectedWorkspaceForPages);
+                    
+                    if (!workspace) return null;
+                    
+                    return workspace.pages.length > 0 ? (
+                      workspace.pages.map(page => 
+                        renderPageTree(page, 0, workspace.workspaceId)
+                      )
+                    ) : (
+                      <div className="px-6 py-2 text-xs text-gray-500">
+                        페이지가 없습니다
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+            </>,
+            false,
+            () => {
+              if (selectedWorkspaceForPages) {
+                // TODO: 선택된 워크스페이스에 새 페이지 생성
+                console.log('새 페이지 생성:', selectedWorkspaceForPages);
+              }
+            }
           )}
 
           {/* 휴지통 */}
@@ -526,14 +541,6 @@ export function MainSidebar({ className }: MainSidebarProps) {
             <Trash2 className="h-3.5 w-3.5" />
             <span>휴지통</span>
           </Link>
-        </div>
-
-        {/* 하단 새 페이지 버튼 */}
-        <div className="border-t border-gray-200 p-3 dark:border-gray-800">
-          <Button className="w-full" size="sm">
-            <Plus className="mr-1 h-3.5 w-3.5" />
-            새 페이지
-          </Button>
         </div>
       </aside>
 

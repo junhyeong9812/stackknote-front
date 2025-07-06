@@ -183,3 +183,25 @@ export type {
   ScrollableTabsProps,
   CardTabsProps,
 } from './tabs';
+
+// Dropdown Menu 컴포넌트들
+export {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuCheckboxItem,
+  DropdownMenuRadioItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuShortcut,
+  DropdownMenuGroup,
+  DropdownMenuPortal,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuRadioGroup,
+  DropdownMenuItemWithIcon,
+  SimpleDropdownMenu,
+  UserMenu,
+} from './dropdown-menu';

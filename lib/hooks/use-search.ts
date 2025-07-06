@@ -4,7 +4,6 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { useDebounce } from '@/lib/hooks/use-debounce';
 import { searchApi } from '@/lib/api/search';
 import {
   GlobalSearchResponse,
@@ -12,6 +11,23 @@ import {
   SearchType,
   SearchResultItem,
 } from '@/types';
+
+// 디바운스 훅
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
 
 interface UseSearchOptions {
   enableSuggestions?: boolean;
@@ -185,21 +201,4 @@ export function useSearchModal() {
     closeSearch,
     ...search,
   };
-}
-
-// 디바운스 훅 (없으면 추가)
-export function useDebounce<T>(value: T, delay: number): T {
-  const [debouncedValue, setDebouncedValue] = useState<T>(value);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedValue(value);
-    }, delay);
-
-    return () => {
-      clearTimeout(timer);
-    };
-  }, [value, delay]);
-
-  return debouncedValue;
 }

@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { workspaceApi, pageApi } from '@/lib/api';
+import { sidebarApi, pageApi } from '@/lib/api';
 import { useWorkspaceStore, usePageStore } from '@/lib/stores';
 import { useNotifications } from '@/lib/stores/ui-store';
 import {
@@ -38,21 +38,25 @@ export function useWorkspaceTree(options: UseWorkspaceTreeOptions = {}) {
   } = useQuery<WorkspaceSidebarResponse>({
     queryKey: ['workspace', 'sidebar', 'tree'],
     queryFn: async () => {
-      const response = await workspaceApi.getSidebarTree();
+      const response = await sidebarApi.getSidebarTree();
       return response.data;
     },
     enabled: autoFetch,
     refetchInterval: enablePolling ? pollingInterval : false,
-    onError: (error: any) => {
-      showErrorToast('사이드바 데이터를 불러오는데 실패했습니다.');
-    },
   });
+
+  // 에러 처리
+  useEffect(() => {
+    if (error) {
+      showErrorToast('사이드바 데이터를 불러오는데 실패했습니다.');
+    }
+  }, [error, showErrorToast]);
 
   // 특정 워크스페이스의 페이지 트리 조회 (지연 로딩)
   const fetchWorkspacePages = useCallback(
     async (workspaceId: number) => {
       try {
-        const response = await workspaceApi.getWorkspacePageTree(workspaceId);
+        const response = await sidebarApi.getWorkspacePageTree(workspaceId);
         return response.data;
       } catch (error) {
         showErrorToast('페이지 목록을 불러오는데 실패했습니다.');
@@ -65,11 +69,11 @@ export function useWorkspaceTree(options: UseWorkspaceTreeOptions = {}) {
   // 페이지 즐겨찾기 토글
   const toggleFavoriteMutation = useMutation({
     mutationFn: async (pageId: number) => {
-      const response = await pageApi.toggleFavorite(pageId);
+      const response = await sidebarApi.toggleFavorite(pageId);
       return response.data;
     },
     onSuccess: (isFavorited, pageId) => {
-      queryClient.invalidateQueries(['workspace', 'sidebar', 'tree']);
+      queryClient.invalidateQueries({ queryKey: ['workspace', 'sidebar', 'tree'] });
       const message = isFavorited ? '즐겨찾기에 추가되었습니다.' : '즐겨찾기에서 제거되었습니다.';
       // showSuccessToast(message);
     },
@@ -82,9 +86,9 @@ export function useWorkspaceTree(options: UseWorkspaceTreeOptions = {}) {
   const recordPageVisit = useCallback(
     async (pageId: number) => {
       try {
-        await pageApi.recordPageVisit(pageId);
+        await sidebarApi.recordPageVisit(pageId);
         // 최근 페이지 목록 갱신
-        queryClient.invalidateQueries(['workspace', 'sidebar', 'tree']);
+        queryClient.invalidateQueries({ queryKey: ['workspace', 'sidebar', 'tree'] });
       } catch (error) {
         console.error('페이지 방문 기록 실패:', error);
       }
@@ -114,7 +118,7 @@ export function useWorkspaceTree(options: UseWorkspaceTreeOptions = {}) {
         });
         
         // 트리 갱신
-        queryClient.invalidateQueries(['workspace', 'sidebar', 'tree']);
+        queryClient.invalidateQueries({ queryKey: ['workspace', 'sidebar', 'tree'] });
         
         return newPage.data;
       } catch (error) {
@@ -135,7 +139,7 @@ export function useWorkspaceTree(options: UseWorkspaceTreeOptions = {}) {
         });
         
         // 트리 갱신
-        queryClient.invalidateQueries(['workspace', 'sidebar', 'tree']);
+        queryClient.invalidateQueries({ queryKey: ['workspace', 'sidebar', 'tree'] });
       } catch (error) {
         showErrorToast('페이지 이동에 실패했습니다.');
         throw error;

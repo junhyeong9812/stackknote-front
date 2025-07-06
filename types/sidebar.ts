@@ -86,14 +86,15 @@ export type SidebarSection =
   | 'RECENT'
   | 'PERSONAL'
   | 'TEAMSPACES'
+  | 'PAGES'
   | 'SHARED'
   | 'TRASH';
 
 // 사이드바 UI 상태
 export interface SidebarUIState {
-  expandedSections: Set<SidebarSection>;
-  expandedWorkspaces: Set<number>;
-  expandedPages: Set<number>;
+  expandedSections: SidebarSection[];
+  expandedWorkspaces: number[];
+  expandedPages: number[];
   selectedPageId: number | null;
   selectedWorkspaceId: number | null;
   isDragging: boolean;
