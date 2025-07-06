@@ -140,47 +140,98 @@ class ApiClient {
    * 인증 오류 처리
    */
   private async handleUnauthorized(error: AxiosError): Promise<any> {
-    const config = error.config as RequestConfig;
+  const config = error.config as RequestConfig;
 
-    if (this.isRefreshing) {
-      // 이미 토큰 갱신 중이면 대기
-      return new Promise(resolve => {
-        this.refreshSubscribers.push(token => {
-          if (token) {
-            resolve(this.instance.request(config));
-          } else {
-            resolve(Promise.reject(error));
-          }
-        });
-      });
-    }
-
-    this.isRefreshing = true;
-
-    try {
-      // 토큰 갱신 시도
-      await this.instance.post('/auth/refresh');
-
-      // 대기 중인 요청들 재시도
-      this.refreshSubscribers.forEach(callback => callback('refreshed'));
-      this.refreshSubscribers = [];
-
-      // 원래 요청 재시도
-      return this.instance.request(config);
-    } catch (refreshError) {
-      // 갱신 실패 시 로그인 페이지로 리다이렉트
-      this.refreshSubscribers.forEach(callback => callback(null));
-      this.refreshSubscribers = [];
-
-      if (typeof window !== 'undefined') {
-        window.location.href = '/login';
-      }
-
-      return Promise.reject(refreshError);
-    } finally {
-      this.isRefreshing = false;
-    }
+  // 로그인, 회원가입, 토큰 갱신 요청은 재시도하지 않음
+  const authEndpoints = ['/auth/login', '/auth/register', '/auth/refresh'];
+  if (config?.url && authEndpoints.some(endpoint => config.url?.includes(endpoint))) {
+    return Promise.reject(this.normalizeError(error));
   }
+
+  if (this.isRefreshing) {
+    // 이미 토큰 갱신 중이면 대기
+    return new Promise(resolve => {
+      this.refreshSubscribers.push(token => {
+        if (token) {
+          resolve(this.instance.request(config));
+        } else {
+          resolve(Promise.reject(error));
+        }
+      });
+    });
+  }
+
+  this.isRefreshing = true;
+
+  try {
+    // 토큰 갱신 시도 - 타입 캐스팅 사용
+    await this.instance.post('/auth/refresh', {}, {
+      skipAuthRetry: true
+    } as RequestConfig);  // ← 이렇게 타입 캐스팅
+
+    // 대기 중인 요청들 재시도
+    this.refreshSubscribers.forEach(callback => callback('refreshed'));
+    this.refreshSubscribers = [];
+
+    // 원래 요청 재시도
+    return this.instance.request(config);
+  } catch (refreshError) {
+    // 갱신 실패 시 로그인 페이지로 리다이렉트
+    this.refreshSubscribers.forEach(callback => callback(null));
+    this.refreshSubscribers = [];
+
+    // 로그인 페이지에 있으면 리다이렉트하지 않음
+    if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+      window.location.href = '/login';
+    }
+
+    return Promise.reject(refreshError);
+  } finally {
+    this.isRefreshing = false;
+  }
+}
+  // private async handleUnauthorized(error: AxiosError): Promise<any> {
+  //   const config = error.config as RequestConfig;
+    
+  //   if (this.isRefreshing) {
+  //     // 이미 토큰 갱신 중이면 대기
+  //     return new Promise(resolve => {
+  //       this.refreshSubscribers.push(token => {
+  //         if (token) {
+  //           resolve(this.instance.request(config));
+  //         } else {
+  //           resolve(Promise.reject(error));
+  //         }
+  //       });
+  //     });
+  //   }
+
+  //   this.isRefreshing = true;
+
+  //   try {
+  //     // 토큰 갱신 시도
+  //     await this.instance.post('/auth/refresh');
+
+  //     // 대기 중인 요청들 재시도
+  //     this.refreshSubscribers.forEach(callback => callback('refreshed'));
+  //     this.refreshSubscribers = [];
+
+  //     // 원래 요청 재시도
+  //     return this.instance.request(config);
+  //   } catch (refreshError) {
+  //     // 갱신 실패 시 로그인 페이지로 리다이렉트
+  //     this.refreshSubscribers.forEach(callback => callback(null));
+  //     this.refreshSubscribers = [];
+
+  //     if (typeof window !== 'undefined') {
+  //       window.location.href = '/login';
+  //     }
+
+  //     return Promise.reject(refreshError);
+  //   } finally {
+  //     this.isRefreshing = false;
+  //   }
+  // }
 
   /**
    * 재시도 여부 판단
