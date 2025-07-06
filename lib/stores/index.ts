@@ -43,3 +43,13 @@ export {
   useEditor,
   useMobile,
 } from './ui-store';
+
+// Sidebar Store
+export {
+  useSidebarStore,
+  useSidebarData,
+  usePersonalSpace,
+  useTeamSpaces,
+  useRecentPages as useSidebarRecentPages,
+  useFavoritePages,
+} from './sidebar-store';

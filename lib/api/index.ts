@@ -16,6 +16,9 @@ export { commentApi } from './comment';
 export { fileApi } from './file';
 export { tagApi } from './tag';
 export { notificationApi } from './notification';
+export { sidebarApi } from './sidebar';
+export { searchApi } from './search';
 
 // API 설정
 export { API_CONFIG, API_ENDPOINTS, buildUrl } from '@/lib/config/api-config';
+

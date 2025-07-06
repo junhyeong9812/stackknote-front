@@ -52,6 +52,19 @@ export {
   useFileUtils,
 } from './use-file-upload';
 
+// 검색 관련 훅
+export {
+  useSearch,
+  useSearchModal,
+  useDebounce,
+} from './use-search';
+
+// 워크스페이스 트리 관련 훅
+export {
+  useWorkspaceTree,
+  usePageTreeNavigation,
+} from './use-workspace-tree';
+
 // 워크스페이스 관련 훅 (추후 추가)
 // export { useWorkspace, useWorkspaceMembers } from './use-workspace';
 

@@ -1,287 +1,544 @@
-// components/layout/main-sidebar.tsx
 'use client';
 
-import React from 'react';
+import React, { useCallback, useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import {
-  Home,
-  FileText,
-  Users,
-  Settings,
-  Search,
-  Plus,
-  ChevronRight,
   ChevronDown,
+  ChevronRight,
+  Search,
+  Settings,
+  Plus,
+  MoreHorizontal,
+  Star,
+  Clock,
+  Home,
+  Users,
+  Trash2,
+  FileText,
+  Hash,
   Lock,
   Globe,
-  Star,
-  FolderOpen,
-  Hash,
+  LogOut,
+  User,
+  HelpCircle,
+  Keyboard,
+  Download,
+  Upload,
+  Copy,
+  Move,
+  Edit,
+  SidebarOpen,
+  SidebarClose,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
-import { Button, Badge, Avatar } from '@/components/ui';
 import {
-  useAuth,
-  useSidebar,
-  useCurrentWorkspace,
-  usePageTree,
-} from '@/lib/stores';
-import { PageTreeNode } from '@/types';
+  Button,
+  Avatar,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  SimpleTooltip,
+} from '@/components/ui';
+import { SearchModal } from '@/components/search/search-modal';
+import { useAuth, useSidebarStore, useUIStore } from '@/lib/stores';
+import { 
+  PageTreeResponse, 
+  PersonalSpaceResponse, 
+  TeamSpaceResponse,
+  RecentPageResponse,
+  FavoritePageResponse,
+  SidebarSection,
+} from '@/types';
 
 interface MainSidebarProps {
   className?: string;
 }
 
-interface NavItemProps {
-  href: string;
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  isActive?: boolean;
-  badge?: string | number;
-  isCollapsed?: boolean;
-  onClick?: () => void;
-}
-
-const NavItem = ({
-  href,
-  icon: Icon,
-  label,
-  isActive,
-  badge,
-  isCollapsed,
-  onClick,
-}: NavItemProps) => (
-  <Link href={href} onClick={onClick}>
-    <div
-      className={cn(
-        'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-        'hover:bg-gray-100 dark:hover:bg-gray-800',
-        isActive &&
-          'bg-gray-100 text-blue-600 dark:bg-gray-800 dark:text-blue-400',
-        isCollapsed && 'justify-center px-2'
-      )}
-    >
-      <Icon className='h-4 w-4 flex-shrink-0' />
-      {!isCollapsed && (
-        <>
-          <span className='flex-1 truncate'>{label}</span>
-          {badge && (
-            <Badge variant='secondary' className='ml-auto'>
-              {badge}
-            </Badge>
-          )}
-        </>
-      )}
-    </div>
-  </Link>
-);
-
-interface PageTreeItemProps {
-  node: PageTreeNode;
-  level: number;
-  isCollapsed: boolean;
-  workspaceId: number;
-}
-
-const PageTreeItem = ({
-  node,
-  level,
-  isCollapsed,
-  workspaceId,
-}: PageTreeItemProps) => {
-  const pathname = usePathname();
-  const isActive = pathname === `/workspace/${workspaceId}/page/${node.id}`;
-
-  if (isCollapsed) return null;
-
-  return (
-    <div>
-      <Link href={`/workspace/${workspaceId}/page/${node.id}`}>
-        <div
-          className={cn(
-            'flex items-center gap-2 rounded-md px-3 py-1.5 text-sm transition-colors hover:bg-gray-100 dark:hover:bg-gray-800',
-            isActive &&
-              'bg-gray-100 text-blue-600 dark:bg-gray-800 dark:text-blue-400'
-          )}
-          style={{ paddingLeft: `${12 + level * 16}px` }}
-        >
-          {node.hasChildren &&
-            (node.isExpanded ? (
-              <ChevronDown className='h-3 w-3 text-gray-500' />
-            ) : (
-              <ChevronRight className='h-3 w-3 text-gray-500' />
-            ))}
-          {node.icon ? (
-            <span className='text-xs'>{node.icon}</span>
-          ) : (
-            <FileText className='h-3 w-3 text-gray-500' />
-          )}
-          <span className='flex-1 truncate'>{node.title}</span>
-        </div>
-      </Link>
-
-      {node.isExpanded &&
-        node.children?.map(child => (
-          <PageTreeItem
-            key={child.id}
-            node={child}
-            level={level + 1}
-            isCollapsed={isCollapsed}
-            workspaceId={workspaceId}
-          />
-        ))}
-    </div>
-  );
-};
-
 export function MainSidebar({ className }: MainSidebarProps) {
   const pathname = usePathname();
-  const { user } = useAuth();
-  const { collapsed, toggle } = useSidebar();
-  const currentWorkspace = useCurrentWorkspace();
-  const pageTree = usePageTree();
+  const router = useRouter();
+  const { user, logout } = useAuth();
+  const { sidebarCollapsed, toggleSidebar } = useUIStore(state => ({
+    sidebarCollapsed: state.sidebarCollapsed,
+    toggleSidebar: state.toggleSidebar,
+  }));
+  
+  const {
+    sidebarData,
+    expandedSections,
+    expandedWorkspaces,
+    expandedPages,
+    selectedPageId,
+    toggleSection,
+    toggleWorkspace,
+    togglePage,
+    selectPage,
+    toggleFavorite,
+    fetchSidebarData,
+  } = useSidebarStore();
 
-  const navigationItems = [
-    {
-      href: '/dashboard',
-      icon: Home,
-      label: '대시보드',
-      isActive: pathname === '/dashboard',
-    },
-    {
-      href: currentWorkspace
-        ? `/workspace/${currentWorkspace.id}`
-        : '/workspace',
-      icon: FolderOpen,
-      label: '워크스페이스',
-      isActive: pathname.startsWith('/workspace'),
-    },
-    {
-      href: '/search',
-      icon: Search,
-      label: '검색',
-      isActive: pathname === '/search',
-    },
-    {
-      href: '/settings',
-      icon: Settings,
-      label: '설정',
-      isActive: pathname === '/settings',
-    },
-  ];
+  const [searchOpen, setSearchOpen] = useState(false);
 
-  return (
-    <aside
-      className={cn(
-        'flex flex-col border-r border-gray-200 bg-white transition-all duration-200 dark:border-gray-800 dark:bg-gray-900',
-        collapsed ? 'w-16' : 'w-64',
-        className
-      )}
-    >
-      {/* 상단 헤더 */}
-      <div className='flex items-center gap-3 border-b border-gray-200 p-4 dark:border-gray-800'>
-        {!collapsed && user && (
-          <>
-            <Avatar className='h-8 w-8'>
-              <img
-                src={user.profileImageUrl || '/default-avatar.png'}
-                alt={user.username}
-              />
-            </Avatar>
-            <div className='min-w-0 flex-1'>
-              <p className='truncate text-sm font-medium text-gray-900 dark:text-gray-100'>
-                {user.username}
-              </p>
-              <p className='truncate text-xs text-gray-500 dark:text-gray-400'>
-                {user.email}
-              </p>
-            </div>
-          </>
-        )}
-        <Button
-          variant='ghost'
-          size='sm'
-          onClick={toggle}
-          className='h-8 w-8 p-0'
+  // 초기 데이터 로드
+  React.useEffect(() => {
+    fetchSidebarData();
+  }, [fetchSidebarData]);
+
+  // 섹션 렌더링
+  const renderSection = (
+    title: string,
+    section: SidebarSection,
+    children: React.ReactNode,
+    isEmpty?: boolean
+  ) => {
+    const isExpanded = expandedSections.has(section);
+
+    return (
+      <div className="mb-1">
+        <button
+          onClick={() => toggleSection(section)}
+          className="flex w-full items-center gap-1 rounded px-2 py-1 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
         >
-          <ChevronRight
-            className={cn(
-              'h-4 w-4 transition-transform',
-              !collapsed && 'rotate-180'
+          {isExpanded ? (
+            <ChevronDown className="h-3.5 w-3.5" />
+          ) : (
+            <ChevronRight className="h-3.5 w-3.5" />
+          )}
+          <span className="font-medium">{title}</span>
+        </button>
+        {isExpanded && (
+          <div className="mt-0.5">
+            {isEmpty ? (
+              <div className="px-6 py-2 text-xs text-gray-500">
+                비어있음
+              </div>
+            ) : (
+              children
             )}
-          />
-        </Button>
-      </div>
-
-      {/* 메인 내비게이션 */}
-      <div className='flex-1 overflow-y-auto'>
-        <div className='space-y-1 p-3'>
-          {navigationItems.map(item => (
-            <NavItem key={item.href} {...item} isCollapsed={collapsed} />
-          ))}
-        </div>
-
-        {/* 워크스페이스 정보 */}
-        {currentWorkspace && !collapsed && (
-          <div className='px-3 py-2'>
-            <div className='border-t border-gray-200 pt-3 dark:border-gray-800'>
-              <div className='mb-3 flex items-center gap-2'>
-                <div className='flex min-w-0 flex-1 items-center gap-2'>
-                  {currentWorkspace.icon ? (
-                    <span className='text-lg'>{currentWorkspace.icon}</span>
-                  ) : (
-                    <FolderOpen className='h-4 w-4 text-gray-500' />
-                  )}
-                  <div className='min-w-0 flex-1'>
-                    <h3 className='truncate text-sm font-medium text-gray-900 dark:text-gray-100'>
-                      {currentWorkspace.name}
-                    </h3>
-                    <div className='flex items-center gap-1'>
-                      {currentWorkspace.visibility === 'PUBLIC' ? (
-                        <Globe className='h-3 w-3 text-gray-400' />
-                      ) : (
-                        <Lock className='h-3 w-3 text-gray-400' />
-                      )}
-                      <span className='text-xs text-gray-500 dark:text-gray-400'>
-                        {currentWorkspace.visibility === 'PUBLIC'
-                          ? '공개'
-                          : '비공개'}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <Button variant='ghost' size='sm' className='h-6 w-6 p-0'>
-                  <Plus className='h-3 w-3' />
-                </Button>
-              </div>
-
-              {/* 페이지 트리 */}
-              <div className='space-y-0.5'>
-                {pageTree.map(node => (
-                  <PageTreeItem
-                    key={node.id}
-                    node={node}
-                    level={0}
-                    isCollapsed={collapsed}
-                    workspaceId={currentWorkspace.id}
-                  />
-                ))}
-              </div>
-            </div>
           </div>
         )}
       </div>
+    );
+  };
 
-      {/* 하단 액션 */}
-      {!collapsed && (
-        <div className='border-t border-gray-200 p-3 dark:border-gray-800'>
-          <Button className='w-full' size='sm'>
-            <Plus className='mr-2 h-4 w-4' />새 페이지
+  // 페이지 트리 아이템 렌더링
+  const renderPageTree = (
+    page: PageTreeResponse,
+    level: number = 0,
+    workspaceId: number
+  ) => {
+    const isActive = pathname === `/workspace/${workspaceId}/page/${page.id}`;
+    const isExpanded = expandedPages.has(page.id);
+    const hasChildren = page.hasChildren && page.children.length > 0;
+
+    return (
+      <div key={page.id}>
+        <div
+          className={cn(
+            'group flex items-center rounded hover:bg-gray-100 dark:hover:bg-gray-800',
+            isActive && 'bg-gray-100 dark:bg-gray-800'
+          )}
+          style={{ paddingLeft: `${12 + level * 12}px` }}
+        >
+          <button
+            onClick={() => hasChildren && togglePage(page.id)}
+            className="flex h-6 w-6 items-center justify-center"
+          >
+            {hasChildren && (
+              isExpanded ? (
+                <ChevronDown className="h-3 w-3 text-gray-500" />
+              ) : (
+                <ChevronRight className="h-3 w-3 text-gray-500" />
+              )
+            )}
+          </button>
+
+          <Link
+            href={`/workspace/${workspaceId}/page/${page.id}`}
+            onClick={() => selectPage(page.id)}
+            className="flex flex-1 items-center gap-2 py-1 pr-2"
+          >
+            {page.icon ? (
+              <span className="text-sm">{page.icon}</span>
+            ) : (
+              <FileText className="h-3.5 w-3.5 text-gray-500" />
+            )}
+            <span className={cn(
+              "flex-1 truncate text-sm",
+              isActive ? "font-medium text-gray-900 dark:text-gray-100" : "text-gray-700 dark:text-gray-300"
+            )}>
+              {page.title}
+            </span>
+            {page.isLocked && <Lock className="h-3 w-3 text-gray-400" />}
+            {page.isPublished && <Globe className="h-3 w-3 text-gray-400" />}
+          </Link>
+
+          <div className="opacity-0 group-hover:opacity-100">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                  <MoreHorizontal className="h-3.5 w-3.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem onClick={() => toggleFavorite(page.id)}>
+                  <Star className="mr-2 h-3.5 w-3.5" />
+                  즐겨찾기
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <Copy className="mr-2 h-3.5 w-3.5" />
+                  복제
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <Edit className="mr-2 h-3.5 w-3.5" />
+                  이름 변경
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <Move className="mr-2 h-3.5 w-3.5" />
+                  이동
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="text-red-600">
+                  <Trash2 className="mr-2 h-3.5 w-3.5" />
+                  삭제
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+
+        {isExpanded && hasChildren && (
+          <div>
+            {page.children.map(child => 
+              renderPageTree(child, level + 1, workspaceId)
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // 워크스페이스 렌더링
+  const renderWorkspace = (
+    workspace: PersonalSpaceResponse | TeamSpaceResponse,
+    isPersonal = false
+  ) => {
+    const isExpanded = expandedWorkspaces.has(workspace.workspaceId);
+
+    return (
+      <div key={workspace.workspaceId} className="mb-1">
+        <div className="group flex items-center rounded px-2 hover:bg-gray-100 dark:hover:bg-gray-800">
+          <button
+            onClick={() => toggleWorkspace(workspace.workspaceId)}
+            className="flex h-6 w-6 items-center justify-center"
+          >
+            {isExpanded ? (
+              <ChevronDown className="h-3.5 w-3.5 text-gray-500" />
+            ) : (
+              <ChevronRight className="h-3.5 w-3.5 text-gray-500" />
+            )}
+          </button>
+
+          <Link
+            href={`/workspace/${workspace.workspaceId}`}
+            className="flex flex-1 items-center gap-2 py-1"
+          >
+            {workspace.icon ? (
+              <span className="text-sm">{workspace.icon}</span>
+            ) : (
+              <Hash className="h-3.5 w-3.5 text-gray-500" />
+            )}
+            <span className="flex-1 truncate text-sm font-medium text-gray-700 dark:text-gray-300">
+              {workspace.name}
+            </span>
+            <span className="text-xs text-gray-500">
+              {workspace.totalPageCount}
+            </span>
+          </Link>
+
+          <div className="opacity-0 group-hover:opacity-100">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+                  <MoreHorizontal className="h-3.5 w-3.5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem>
+                  <Plus className="mr-2 h-3.5 w-3.5" />
+                  새 페이지
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <Settings className="mr-2 h-3.5 w-3.5" />
+                  설정
+                </DropdownMenuItem>
+                {!isPersonal && (
+                  <>
+                    <DropdownMenuItem>
+                      <Users className="mr-2 h-3.5 w-3.5" />
+                      멤버 관리
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem>
+                      <LogOut className="mr-2 h-3.5 w-3.5" />
+                      나가기
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+
+        {isExpanded && (
+          <div className="ml-2">
+            {workspace.pages.map(page => 
+              renderPageTree(page, 0, workspace.workspaceId)
+            )}
+            {workspace.pages.length === 0 && (
+              <div className="px-6 py-2 text-xs text-gray-500">
+                페이지가 없습니다
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // 최근/즐겨찾기 페이지 렌더링
+  const renderQuickAccessPage = (
+    page: RecentPageResponse | FavoritePageResponse,
+    type: 'recent' | 'favorite'
+  ) => {
+    const pageId = page.pageId;
+    const isActive = selectedPageId === pageId;
+
+    return (
+      <Link
+        key={pageId}
+        href={`/workspace/${page.workspaceId}/page/${pageId}`}
+        onClick={() => selectPage(pageId)}
+        className={cn(
+          "group flex items-center gap-2 rounded px-3 py-1 hover:bg-gray-100 dark:hover:bg-gray-800",
+          isActive && "bg-gray-100 dark:bg-gray-800"
+        )}
+      >
+        {page.icon ? (
+          <span className="text-sm">{page.icon}</span>
+        ) : (
+          <FileText className="h-3.5 w-3.5 text-gray-500" />
+        )}
+        <div className="flex-1 truncate">
+          <div className="truncate text-sm text-gray-700 dark:text-gray-300">
+            {page.title}
+          </div>
+          <div className="truncate text-xs text-gray-500">
+            {page.workspaceName}
+          </div>
+        </div>
+        {type === 'favorite' && (
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              toggleFavorite(pageId);
+            }}
+            className="opacity-0 group-hover:opacity-100"
+          >
+            <Star className="h-3.5 w-3.5 text-yellow-500 fill-yellow-500" />
+          </button>
+        )}
+      </Link>
+    );
+  };
+
+  if (sidebarCollapsed) {
+    return (
+      <aside className={cn(
+        "flex w-12 flex-col border-r border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-900",
+        className
+      )}>
+        <div className="flex h-12 items-center justify-center border-b border-gray-200 dark:border-gray-800">
+          <SimpleTooltip content="사이드바 펼치기">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleSidebar}
+              className="h-8 w-8 p-0"
+            >
+              <SidebarOpen className="h-4 w-4" />
+            </Button>
+          </SimpleTooltip>
+        </div>
+      </aside>
+    );
+  }
+
+  return (
+    <>
+      <aside className={cn(
+        "flex w-60 flex-col border-r border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-900",
+        className
+      )}>
+        {/* 상단 사용자 메뉴 */}
+        <div className="flex items-center gap-2 border-b border-gray-200 px-3 py-2 dark:border-gray-800">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="flex flex-1 items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-800">
+                <Avatar className="h-5 w-5">
+                  <img
+                    src={user?.profileImageUrl || '/default-avatar.png'}
+                    alt={user?.username}
+                  />
+                </Avatar>
+                <span className="flex-1 truncate font-medium">
+                  {user?.username || '사용자'}
+                </span>
+                <ChevronDown className="h-3.5 w-3.5 text-gray-500" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-56">
+              <div className="px-2 py-1.5">
+                <p className="text-sm font-medium">{user?.username}</p>
+                <p className="text-xs text-gray-500">{user?.email}</p>
+              </div>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem>
+                <User className="mr-2 h-3.5 w-3.5" />
+                프로필 설정
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <Settings className="mr-2 h-3.5 w-3.5" />
+                설정
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <Keyboard className="mr-2 h-3.5 w-3.5" />
+                키보드 단축키
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem>
+                <Download className="mr-2 h-3.5 w-3.5" />
+                내보내기
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <Upload className="mr-2 h-3.5 w-3.5" />
+                가져오기
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem>
+                <HelpCircle className="mr-2 h-3.5 w-3.5" />
+                도움말 & 지원
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={logout}>
+                <LogOut className="mr-2 h-3.5 w-3.5" />
+                로그아웃
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <SimpleTooltip content="사이드바 접기">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleSidebar}
+              className="h-6 w-6 p-0"
+            >
+              <SidebarClose className="h-3.5 w-3.5" />
+            </Button>
+          </SimpleTooltip>
+
+          <SimpleTooltip content="새 페이지 (Ctrl+N)">
+            <Button variant="ghost" size="sm" className="h-6 w-6 p-0">
+              <Plus className="h-3.5 w-3.5" />
+            </Button>
+          </SimpleTooltip>
+        </div>
+
+        {/* 검색 버튼 */}
+        <div className="px-3 py-2">
+          <button
+            onClick={() => setSearchOpen(true)}
+            className="flex w-full items-center gap-2 rounded-md bg-gray-100 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-gray-700"
+          >
+            <Search className="h-3.5 w-3.5" />
+            <span>검색...</span>
+            <span className="ml-auto text-xs text-gray-400">⌘K</span>
+          </button>
+        </div>
+
+        {/* 메인 네비게이션 */}
+        <div className="flex-1 overflow-y-auto px-2">
+          {/* 홈 */}
+          <Link
+            href="/dashboard"
+            className={cn(
+              "flex items-center gap-2 rounded px-3 py-1.5 text-sm hover:bg-gray-100 dark:hover:bg-gray-800",
+              pathname === '/dashboard' && "bg-gray-100 dark:bg-gray-800"
+            )}
+          >
+            <Home className="h-3.5 w-3.5" />
+            <span>홈</span>
+          </Link>
+
+          {/* 즐겨찾기 */}
+          {renderSection(
+            '즐겨찾기',
+            'FAVORITES',
+            sidebarData?.favoritePages.map(page => 
+              renderQuickAccessPage(page, 'favorite')
+            ),
+            !sidebarData?.favoritePages.length
+          )}
+
+          {/* 최근 */}
+          {renderSection(
+            '최근',
+            'RECENT',
+            sidebarData?.recentPages.map(page => 
+              renderQuickAccessPage(page, 'recent')
+            ),
+            !sidebarData?.recentPages.length
+          )}
+
+          {/* 개인 페이지 */}
+          {sidebarData?.personalSpace && renderSection(
+            '개인 페이지',
+            'PERSONAL',
+            renderWorkspace(sidebarData.personalSpace, true)
+          )}
+
+          {/* 팀스페이스 */}
+          {renderSection(
+            '팀스페이스',
+            'TEAMSPACES',
+            sidebarData?.teamSpaces.map(space => renderWorkspace(space)),
+            !sidebarData?.teamSpaces.length
+          )}
+
+          {/* 휴지통 */}
+          <Link
+            href="/trash"
+            className="flex items-center gap-2 rounded px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            <span>휴지통</span>
+          </Link>
+        </div>
+
+        {/* 하단 새 페이지 버튼 */}
+        <div className="border-t border-gray-200 p-3 dark:border-gray-800">
+          <Button className="w-full" size="sm">
+            <Plus className="mr-1 h-3.5 w-3.5" />
+            새 페이지
           </Button>
         </div>
-      )}
-    </aside>
+      </aside>
+
+      {/* 검색 모달 */}
+      <SearchModal open={searchOpen} onOpenChange={setSearchOpen} />
+    </>
   );
 }
